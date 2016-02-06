@@ -1,5 +1,6 @@
 all:
-	gcc syllables.c dict.c -o bin/syllables
+	gcc syllables.c lib/dict.c -o bin/syllables
+	gcc matcher.c -o bin/matcher
 debug:
-	gcc -g  syllables.c dict.c -o bin/syllables 
+	gcc -g  syllables.c lib/dict.c -o bin/syllables
 .PHONY: all

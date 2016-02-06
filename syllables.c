@@ -18,7 +18,7 @@
 */
 
 
-#include "dict.h"
+#include "lib/dict.h"
 
 int is_vowel(char c) {
 	return (c=='a' || c=='e' || c=='i' || c=='o' || c=='u' ||
