@@ -32,7 +32,7 @@ void insert_rule(ruleset* rs, rule *ru) {
 }
 
 void print_ruleset(ruleset rs) {
-    if(rs==NULL) return;//printf("NULL\n");
+    if(rs==NULL) return;
     else {
         printf("%s -> %s\n", rs->r->condition, rs->r->result);
         print_ruleset(rs->next);
@@ -91,14 +91,14 @@ char *apply_rule(char *string, rule *r){
 }
 
 char *apply_ruleset(char *string, ruleset rs){
+	if(!string) return ".";
 	int i = 0, l = strlen(string);
 	rule *tmp_rule;
-	char *tmp_string, *final = (char *) malloc(sizeof(char) * l * 2);
+	char *tmp_string = (char *) malloc(sizeof(char) * 3), *final = (char *) malloc(sizeof(char) * l * 2);
 	while(i < l){
 		strncpy(tmp_string, string, 3);
 		if(tmp_rule = match_rule(tmp_string, rs)){
 			strcat(final, apply_rule(tmp_string, tmp_rule));
-			//strcat(final, "-");
 		}
 		else {
 			strcat(final, string);
@@ -111,7 +111,7 @@ char *apply_ruleset(char *string, ruleset rs){
 }
 
 
-int main(){
+int main(int argc, char *argv[]){
 	ruleset my = NULL;
 	insert_rule(&my, create_rule("vcc", "vc-c"));
 	insert_rule(&my, create_rule("vcv", "v-cv"));
@@ -120,9 +120,6 @@ int main(){
 	insert_rule(&my, create_rule("ccv", "c-cv"));
 	insert_rule(&my, create_rule("cvc", "cv-c"));
 	insert_rule(&my, create_rule("cvv", "cv-v"));
-
-	printf("Ruleset defined as follows: \n");
-	print_ruleset(my);
-
-	printf("%s", apply_ruleset("diverge", my));
+	//printf("%s", argv[1]);
+	printf("%s\n", apply_ruleset(argv[1], my));
 }
