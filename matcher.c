@@ -21,6 +21,7 @@ rule *create_rule(char *condition, char *result){
 	rule *obj = (rule *) malloc(sizeof(rule));
 	obj->condition = strdup(condition);
 	obj->result = strdup(result);
+	return obj;
 }
 
 void insert_rule(ruleset* rs, rule *ru) {
@@ -175,7 +176,7 @@ int main(int argc, char *argv[]){
 	insert_rule(&my, create_rule("#@#", "#@-#"));
 	insert_rule(&my, create_rule("#@@", "#@-@"));
 
-	/* Bunche of few particular rules just for fun
+	/* Bunch of few particular rules just for fun
 	*/
 	insert_rule(&my, create_rule("fra", "fra-"));
 	insert_rule(&my, create_rule("aer", "a-e-r"));
