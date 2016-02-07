@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define DEFAULT_CONDITION_LENGTH 3
 struct _rule {
 	char *condition;
 	char *result;
@@ -49,6 +50,18 @@ int is_consonant(char c){
 	return ((c > 'a') && (c <= 'z')) || ((c>'A') && (c <= 'Z')) && !is_vowel(c);
 }
 
+int is_letter(char c){
+	return is_vowel(c) || is_consonant(c);
+}
+
+int is_valid_symbol(char c){
+	return c=='@' || c=='#';
+}
+
+int is_valid_rule_symbol(char c){
+	return is_letter(c) || is_valid_symbol(c);
+}
+
 int control_match(char *chunk, char *condition){
     int condition_length = strlen(condition);
     int chunk_length = strlen(chunk);
@@ -57,7 +70,7 @@ int control_match(char *chunk, char *condition){
     if(chunk_length != condition_length) return 0;
 
     while(i < condition_length){
-        if( (condition[i]=='v' && is_vowel(chunk[i])) || (condition[i]=='c' && is_consonant(chunk[i])) )
+        if( ((condition[i]=='@' && is_vowel(chunk[i])) || (condition[i]=='#' && is_consonant(chunk[i]))) || (chunk[i]==condition[i]) )
             i++;
         else
             return 0;
@@ -73,53 +86,102 @@ rule *match_rule(char *string, ruleset rs){
 	}
 }
 
-char *apply_rule(char *string, rule *r){
-	int i = 0, l = strlen(string), rl = strlen(r->result);
-	char *final = (char *) malloc((sizeof(char) * rl));
+char *apply_rule(char *chunk, rule *rule_to_be_applied){
+	int rule_result_iterator = 0;
+	int rule_result_length = strlen(rule_to_be_applied->result);
+	char *evaluated_chunk = (char *) malloc(sizeof(char) * rule_result_length);
 
-	while(*string){
-		if(r->result[i]=='v' || r->result[i]=='c') final[i] = *string;
-		else {
-			final[i] = '-';
-			i++;
-			final[i] = *string;
+	while(rule_result_iterator < rule_result_length) {
+		if(is_valid_rule_symbol(rule_to_be_applied->result[rule_result_iterator])){
+			evaluated_chunk[rule_result_iterator] = *chunk;
+			chunk++;
+		} else {
+			evaluated_chunk[rule_result_iterator] = rule_to_be_applied->result[rule_result_iterator];
 		}
-		i++;
-		string++;
+		rule_result_iterator++;
 	}
-	return final;
+	return evaluated_chunk;
 }
 
-char *apply_ruleset(char *string, ruleset rs){
-	if(!string) return ".";
-	int i = 0, l = strlen(string);
-	rule *tmp_rule;
-	char *tmp_string = (char *) malloc(sizeof(char) * 3), *final = (char *) malloc(sizeof(char) * l * 2);
-	while(i < l){
-		strncpy(tmp_string, string, 3);
-		if(tmp_rule = match_rule(tmp_string, rs)){
-			strcat(final, apply_rule(tmp_string, tmp_rule));
+char *apply_ruleset(char *matching_string, ruleset matching_ruleset){
+	/*
+	 * DEFS:
+	 * chunk = group of DEFAULT_CONDITION_LENGTH characters that needs to be matched
+	 *
+	*/
+	if(!matching_string || !matching_ruleset) return "."; // If one of the two arguments is NULL, returns a string with just a point "."
+
+	rule *current_matching_rule; // The rule that is going to be used for chunk of string that needs to be evaluated and matched.
+
+	char *temporary_string = (char *) malloc(sizeof(char) * DEFAULT_CONDITION_LENGTH); //the temporary string that will contain
+																					   //the chunk that needs to be matched
+	int matching_string_length = strlen(matching_string);
+
+	char *evaluated_result =  (char *) malloc(sizeof(char) * matching_string_length * 2);
+
+	int chunk_iterator = 0;
+
+	/*
+	 * For every chunk a rule is applied if matching
+	*/
+	while(chunk_iterator < matching_string_length){
+		strncpy(temporary_string, matching_string, DEFAULT_CONDITION_LENGTH);
+
+		if(current_matching_rule = match_rule(temporary_string, matching_ruleset)){
+			strcat(evaluated_result, apply_rule(temporary_string, current_matching_rule));
+		} else {
+			strcat(evaluated_result, matching_string);
 		}
-		else {
-			strcat(final, string);
-			return final;
-		}
-		string+=3;
-		i+=3;
+
+		current_matching_rule = NULL;
+		matching_string += DEFAULT_CONDITION_LENGTH;
+		chunk_iterator += DEFAULT_CONDITION_LENGTH;
 	}
-	return final;
+	free(temporary_string);
+	free(current_matching_rule);
+	return evaluated_result;
 }
 
+void benchmark(char *file_path, ruleset rs){
+	FILE * fp;
+    char * line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    fp = fopen(file_path, "r");
+    if (fp == NULL)
+        exit(EXIT_FAILURE);
+
+    while ((read = getline(&line, &len, fp)) != -1) {
+		printf("%s", apply_ruleset(line, rs));
+    }
+    fclose(fp);
+    if (line)
+        free(line);
+    exit(EXIT_SUCCESS);
+}
 
 int main(int argc, char *argv[]){
 	ruleset my = NULL;
-	insert_rule(&my, create_rule("vcc", "vc-c"));
-	insert_rule(&my, create_rule("vcv", "v-cv"));
-	insert_rule(&my, create_rule("vvc", "v-vc"));
-	insert_rule(&my, create_rule("vvv", "vvv"));
-	insert_rule(&my, create_rule("ccv", "c-cv"));
-	insert_rule(&my, create_rule("cvc", "cv-c"));
-	insert_rule(&my, create_rule("cvv", "cv-v"));
-	//printf("%s", argv[1]);
+
+	/*
+	 * General rules
+	*/
+	insert_rule(&my, create_rule("@##", "@#-#"));
+	insert_rule(&my, create_rule("@#@", "@-#@-"));
+	insert_rule(&my, create_rule("@@#", "@-@#-"));
+	insert_rule(&my, create_rule("@@@", "@@@"));
+	insert_rule(&my, create_rule("##@", "#-#@-"));
+	insert_rule(&my, create_rule("#@#", "#@-#"));
+	insert_rule(&my, create_rule("#@@", "#@-@"));
+
+	/* Bunche of few particular rules just for fun
+	*/
+	insert_rule(&my, create_rule("fra", "fra-"));
+	insert_rule(&my, create_rule("aer", "a-e-r"));
+	insert_rule(&my, create_rule("eo#", "e-o-#"));
+	insert_rule(&my, create_rule("tin", "tin-"));
+
+
 	printf("%s\n", apply_ruleset(argv[1], my));
 }
